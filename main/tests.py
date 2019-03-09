@@ -1,7 +1,9 @@
-from django.test import TestCase
+import json
+
+from django.test import TestCase, Client
+
 import random
 import string
-# Create your tests here.
 from main.loaders import PatientLoader, PATIENT_EXT_ID, PaymentLoader, PAYMENT_EXT_ID
 from main.models import Patient, Payment
 
@@ -109,3 +111,27 @@ class PaymentLoaderTestCase(TestCase):
         loader = PaymentLoader(data)
         loader.load()
         self.assertEqual(Payment.objects.count(), 5)
+
+
+class PatientImportViewTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_basic_import(self):
+        data = generate_patient_json(10)
+        self.assertEqual(Patient.objects.count(), 0)
+        response = self.client.post('/patients/', json.dumps(data), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Patient.objects.count(), 10)
+
+
+class PaymentImportViewTestCase(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_basic_import(self):
+        data = generate_payment_json(10)
+        self.assertEqual(Payment.objects.count(), 0)
+        response = self.client.post('/payments/', json.dumps(data), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Payment.objects.count(), 10)
