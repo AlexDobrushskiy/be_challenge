@@ -35,22 +35,17 @@ class PatientLoader:
         self.data = data
 
     def load(self):
+        Patient.objects.all().delete()
+        objects = []
         for patient in self.data:
             if not patient_valid(patient):
                 continue
-            try:
-                obj = Patient.objects.get(external_id=patient[PATIENT_EXT_ID])
-            except ObjectDoesNotExist:
-                obj = Patient(external_id=patient[PATIENT_EXT_ID])
+            obj = Patient(external_id=patient[PATIENT_EXT_ID])
             for ext_name, int_name in PATIENT_EDITABLE_FIELDS_MAPPING.items():
                 if ext_name in patient:
                     setattr(obj, int_name, patient[ext_name])
-            try:
-                obj.save()
-            except DatabaseError as error:
-                # TODO: make log record about incorrect/unexpected data
-                pass
-        # TODO: delete objects who are in local DB but not in external data
+            objects.append(obj)
+        Patient.objects.bulk_create(objects)
 
 
 class PaymentLoader:
@@ -58,19 +53,14 @@ class PaymentLoader:
         self.data = data
 
     def load(self):
+        Payment.objects.all().delete()
+        objects = []
         for payment in self.data:
             if not payment_valid(payment):
                 continue
-            try:
-                obj = Payment.objects.get(external_id=payment[PAYMENT_EXT_ID])
-            except ObjectDoesNotExist:
-                obj = Payment(external_id=payment[PAYMENT_EXT_ID])
+            obj = Patient(external_id=payment[PAYMENT_EXT_ID])
             for ext_name, int_name in PAYMENT_EDITABLE_FIELDS_MAPPING.items():
                 if ext_name in payment:
                     setattr(obj, int_name, payment[ext_name])
-            try:
-                obj.save()
-            except DatabaseError as error:
-                # TODO: make log record about incorrect/unexpected data
-                pass
-        # TODO: delete objects who are in local DB but not in external data
+            objects.append(obj)
+        Payment.objects.bulk_create(objects)
