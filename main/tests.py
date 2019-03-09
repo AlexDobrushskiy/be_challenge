@@ -12,10 +12,10 @@ def generate_patient_json(number_of_records):
     result = []
     for i in range(number_of_records):
         record = {
-            "firstName": ''.join(random.choices(string.ascii_letters, k=random.randint(3,25))),
-            "lastName": ''.join(random.choices(string.ascii_letters, k=random.randint(3,25))),
+            "firstName": ''.join(random.choices(string.ascii_letters, k=random.randint(3, 25))),
+            "lastName": ''.join(random.choices(string.ascii_letters, k=random.randint(3, 25))),
             "dateOfBirth": "{}-{}-{}".format(random.randint(1900, 2100), random.randint(1, 12), random.randint(1, 28)),
-            "externalId": ''.join(random.choices(string.ascii_letters+string.digits, k=64))
+            "externalId": ''.join(random.choices(string.ascii_letters + string.digits, k=64))
         }
         result.append(record)
     return result
@@ -26,11 +26,19 @@ def generate_payment_json(number_of_records):
     for i in range(number_of_records):
         record = {
             "amount": random.uniform(1., 100.),
-            "patientId": ''.join(random.choices(string.ascii_letters+string.digits, k=64)),
-            "externalId": ''.join(random.choices(string.ascii_letters+string.digits, k=64))
+            "patientId": ''.join(random.choices(string.ascii_letters + string.digits, k=64)),
+            "externalId": ''.join(random.choices(string.ascii_letters + string.digits, k=64))
         }
         result.append(record)
     return result
+
+
+def generate_payment_for_patient(amount, patient_ext_id):
+    return {
+        "amount": amount,
+        "patientId": patient_ext_id,
+        "externalId": ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+    }
 
 
 class PatientLoaderTestCase(TestCase):
@@ -123,6 +131,60 @@ class PatientViewTestCase(TestCase):
         response = self.client.post('/patients/', json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Patient.objects.count(), 10)
+
+    def test_fetching(self):
+        data = generate_patient_json(10)
+        loader = PatientLoader(data)
+        loader.load()
+        response = self.client.get('/patients/')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 10)
+
+    def test_fetching_payment_min_filter(self):
+        data = generate_patient_json(10)
+        loader = PatientLoader(data)
+        loader.load()
+        payment_data = list()
+        payment_data.append(generate_payment_for_patient(5, data[0]['externalId']))
+        payment_data.append(generate_payment_for_patient(6, data[0]['externalId']))
+        payment_data.append(generate_payment_for_patient(15, data[1]['externalId']))
+        payment_data.append(generate_payment_for_patient(62, data[2]['externalId']))
+        payment_loader = PaymentLoader(payment_data)
+        payment_loader.load()
+        response = self.client.get('/patients/?payment_min=10')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 3)
+
+    def test_fetching_payment_max_filter(self):
+        data = generate_patient_json(10)
+        loader = PatientLoader(data)
+        loader.load()
+        payment_data = list()
+        payment_data.append(generate_payment_for_patient(5, data[0]['externalId']))
+        payment_data.append(generate_payment_for_patient(6, data[0]['externalId']))
+        payment_data.append(generate_payment_for_patient(15, data[1]['externalId']))
+        payment_data.append(generate_payment_for_patient(62, data[2]['externalId']))
+        payment_loader = PaymentLoader(payment_data)
+        payment_loader.load()
+        response = self.client.get('/patients/?payment_max=12')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 8)
+
+    def test_fetching_payment_min_max_filter(self):
+        data = generate_patient_json(10)
+        loader = PatientLoader(data)
+        loader.load()
+        payment_data = list()
+        payment_data.append(generate_payment_for_patient(5, data[0]['externalId']))
+        payment_data.append(generate_payment_for_patient(6, data[0]['externalId']))
+        payment_data.append(generate_payment_for_patient(15, data[1]['externalId']))
+        payment_data.append(generate_payment_for_patient(62, data[2]['externalId']))
+        payment_data.append(generate_payment_for_patient(5, data[3]['externalId']))
+        payment_loader = PaymentLoader(payment_data)
+        payment_loader.load()
+        response = self.client.get('/patients/?payment_max=16&payment_min=10')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 2)
 
 
 class PaymentViewTestCase(TestCase):
