@@ -1,3 +1,13 @@
 from django.contrib import admin
 
-# Register your models here.
+from main.models import Patient, Payment
+
+
+@admin.register(Patient)
+class PatientAdmin(admin.ModelAdmin):
+    pass
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    pass
