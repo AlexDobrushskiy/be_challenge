@@ -5,9 +5,12 @@ from django.http import JsonResponse
 from django.views import View
 
 from main.loaders import PatientLoader, PaymentLoader
+from main.models import Payment
+
+EXTERNAL_ID_QUERY_PARAM = 'external_id'
 
 
-class PatientImportView(View):
+class PatientView(View):
     def post(self, request):
         data = request.body
         try:
@@ -22,7 +25,23 @@ class PatientImportView(View):
         return JsonResponse({'status': 'Data is processed'}, status=200)
 
 
-class PaymentImportView(View):
+class PaymentView(View):
+    def get(self, request):
+        # In production case pagination would be absolutely required here.
+        qs = Payment.objects.all()
+        if EXTERNAL_ID_QUERY_PARAM in request.GET:
+            external_id = request.GET.get(EXTERNAL_ID_QUERY_PARAM)
+            qs = Payment.objects.filter(patient_external_id=external_id)
+        result = []
+        for payment in qs:
+            record = {
+                "amount": payment.amount,
+                "patientId": payment.patient_external_id,
+                "externalId": payment.external_id
+            }
+            result.append(record)
+        return JsonResponse(result, status=200, safe=False)
+
     def post(self, request):
         data = request.body
         try:

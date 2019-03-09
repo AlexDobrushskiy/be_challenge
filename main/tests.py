@@ -113,7 +113,7 @@ class PaymentLoaderTestCase(TestCase):
         self.assertEqual(Payment.objects.count(), 5)
 
 
-class PatientImportViewTestCase(TestCase):
+class PatientViewTestCase(TestCase):
     def setUp(self):
         self.client = Client()
 
@@ -125,7 +125,7 @@ class PatientImportViewTestCase(TestCase):
         self.assertEqual(Patient.objects.count(), 10)
 
 
-class PaymentImportViewTestCase(TestCase):
+class PaymentViewTestCase(TestCase):
     def setUp(self):
         self.client = Client()
 
@@ -135,3 +135,26 @@ class PaymentImportViewTestCase(TestCase):
         response = self.client.post('/payments/', json.dumps(data), content_type='application/json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Payment.objects.count(), 10)
+
+    def test_fetching(self):
+        data = generate_payment_json(10)
+        loader = PaymentLoader(data)
+        loader.load()
+        response = self.client.get('/payments/')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 10)
+
+    def test_fetching_with_filter(self):
+        data = generate_payment_json(10)
+        data[0]['patientId'] = '___SOME UNIQUE EXT ID HERE___'
+        data[1]['patientId'] = '___SOME UNIQUE EXT ID HERE___'
+        data[2]['patientId'] = '___SOME UNIQUE EXT ID HERE___'
+        loader = PaymentLoader(data)
+        loader.load()
+        response = self.client.get('/payments/')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 10)
+
+        response = self.client.get('/payments/?external_id=___SOME UNIQUE EXT ID HERE___')
+        data = json.loads(response.content)
+        self.assertEqual(len(data), 3)

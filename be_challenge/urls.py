@@ -17,10 +17,10 @@ from django.conf.urls import url
 from django.contrib import admin
 from django.urls import path
 
-from main.views import PatientImportView, PaymentImportView
+from main.views import PatientView, PaymentView
 
 urlpatterns = [
-    url(r'^patients/$', PatientImportView.as_view()),
-    url(r'^payments/$', PaymentImportView.as_view()),
+    url(r'^patients/$', PatientView.as_view()),
+    url(r'^payments/$', PaymentView.as_view()),
     path('admin/', admin.site.urls),
 ]
